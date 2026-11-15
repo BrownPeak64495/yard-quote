@@ -1,5 +1,7 @@
 # Yard Quote
 
-Measure a yard by walking its corners with phone GPS, type in measured side lengths for accuracy, and get a price from your own timed work speeds.
+## 👉 Open the app: https://brownpeak64495.github.io/yard-quote/
 
-Open it at the GitHub Pages link, then use the browser menu > Add to Home screen.
+Measure a yard by walking its corners with phone GPS, type in the measured side lengths, and get a fair price from your own timed work speeds.
+
+**Put it on your phone:** open the link above in Chrome → tap ⋮ → **Add to Home screen**. It works even with no signal.
