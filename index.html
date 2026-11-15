@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Yard Quote</title>
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#24452c">
@@ -97,6 +99,13 @@ ol.howto{margin:0;padding-left:22px;display:grid;gap:6px}
 .spd .row{display:grid;grid-template-columns:1fr 120px;gap:10px;align-items:center}
 .empty{text-align:center;padding:28px 12px;color:var(--muted)}
 .sqicon{width:64px;height:64px}
+#lmap{height:320px;border-radius:18px;border:1px solid var(--line);z-index:0;background:#2b2f2c}
+.map .cnt{z-index:2;left:auto;right:12px}
+.pin{background:var(--amber);color:#fff;border:2.5px solid #fff;border-radius:50%;display:grid!important;place-items:center;font:800 13px system-ui;box-shadow:0 1px 4px #0008}
+.pin.sel{background:#fff;color:#000;border-color:var(--amber);border-width:4px;font-size:16px}
+.addr{display:grid;grid-template-columns:1fr auto;gap:8px}.addr .btn{width:auto;min-height:0;padding:0 20px;font-size:17px}
+.leaflet-control-attribution{font-size:10px}
+.meBtn{background:#fff;border:0;width:40px;height:40px;border-radius:8px;font-size:22px;line-height:1;color:#1a73e8;box-shadow:0 1px 4px #0006}
 .chips{display:flex;flex-wrap:wrap;gap:10px}
 .chip{width:54px;height:54px;border-radius:50%;border:2.5px solid var(--amber);background:transparent;color:var(--amber);font-weight:850;font-size:19px}
 .chip[aria-pressed=true]{background:var(--amber);color:var(--on)}
@@ -153,6 +162,7 @@ const keyOf=(a,[i,j])=>`${a.pts[i].id}-${a.pts[j].id}`; // sides are tied to the
 const toFt=(a,v)=>v*(a.sideUnit==='steps'?S.step:1);
 const sideVal=(a,k)=>a.sides[k]??a.sides[k.split('-').reverse().join('-')];
 function measured(a,k){const v=num(sideVal(a,k));return v>0?toFt(a,v)/M2FT:0}
+const via=a=>a.pts.length&&a.pts.every(p=>p.src==='map')?'map':'gps';
 const accFt=a=>a.pts.length?a.pts.reduce((s,p)=>s+p.acc,0)/a.pts.length*M2FT:0;
 // GPS gives each side's direction; your tape/steps give its length. With square corners on,
 // sides within 25° of square snap to exact 90°. Any leftover gap is spread around the sides
@@ -194,11 +204,11 @@ function check(a){
   const g=shape(a),acc=accFt(a),E=edgesOf(n),step=S.step,nm=g.nm;
   const name=k=>`side ${E[k][0]+1} → ${E[k][1]+1}`;
   if(!nm){const err=g.per*M2FT*acc*0.5;
-    return {lv:'warn',t:'GPS only',m:`This could be off by about ${fmt(err)} sq ft either way. Measuring the sides fixes that.`,fix:0,fl:'Measure the sides'}}
+    return {lv:'warn',t:via(a)==='map'?'Placed on the map':'GPS only',m:`This could be off by about ${fmt(err)} sq ft either way. Measuring the sides fixes that.`,fix:0,fl:'Measure the sides'}}
   // a measured side can't be further from the GPS side than 2× GPS accuracy plus 2 of your steps
   const lim=2*acc+2*step;
   for(let k=0;k<E.length;k++)if(g.ml[k]&&Math.abs(g.ml[k]-g.gl[k])*M2FT>lim)
-    return {lv:'bad',t:`Check ${name(k)}`,m:`You typed ${fmt(num(sideVal(a,keyOf(a,E[k]))))} ${a.sideUnit==='steps'?`steps (${fmt(g.ml[k]*M2FT)} ft)`:'ft'}, but GPS saw about ${fmt(g.gl[k]*M2FT)} ft. Wrong number, or feet and steps mixed up?`,fix:k,fl:`Fix ${name(k)}`};
+    return {lv:'bad',t:`Check ${name(k)}`,m:`You typed ${fmt(num(sideVal(a,keyOf(a,E[k]))))} ${a.sideUnit==='steps'?`steps (${fmt(g.ml[k]*M2FT)} ft)`:'ft'}, but ${via(a)==='map'?'the map shows':'GPS saw'} about ${fmt(g.gl[k]*M2FT)} ft. Wrong number, or feet and steps mixed up?`,fix:k,fl:`Fix ${name(k)}`};
   if(g.method==='badtri'){const k=g.L.indexOf(Math.max(...g.L));return {lv:'bad',t:'These sides can\'t make a triangle',m:'One of the 3 lengths is wrong. Re-measure the longest one first.',fix:k,fl:`Fix ${name(k)}`}}
   const gapFt=g.gap*M2FT,um=E.length-nm;
   const allSq=g.method==='square'&&g.ns===E.length;
@@ -210,7 +220,7 @@ function check(a){
     const nE=E.length,prev=(bk-1+nE)%nE,next=(bk+1)%nE,ci=(dif[prev]>dif[next])?E[bk][0]:E[bk][1];
     return {lv:'bad',t:'The sides don\'t add up',m:`They miss closing by ${gapFt.toFixed(1)} ft. Either ${name(bk)} was measured wrong, or corner ${ci+1} is in the wrong spot. Look at the map: if corner ${ci+1} looks out of place, redo it. If not, re-measure the side.${g.method==='square'?' (If a corner isn\'t really square, answer "No" to the square-corners question.)':''}`,fix:bk,fl:`Re-measure ${name(bk)}`,corner:ci};
   }
-  if(um){const k=g.ml.findIndex(v=>!v);return {lv:'warn',t:`${um} side${um>1?'s':''} not measured`,m:`Those use GPS, which can be off by about ${fmt(2*acc)} ft per side. Measure ${um>1?'them':'it'} to be exact.`,fix:k,fl:`Measure ${name(k)}`}}
+  if(um){const k=g.ml.findIndex(v=>!v);return {lv:'warn',t:`${um} side${um>1?'s':''} not measured`,m:`Those use ${via(a)==='map'?'the map':'GPS'}, which can be off by about ${fmt(2*acc)} ft per side. Measure ${um>1?'them':'it'} to be exact.`,fix:k,fl:`Measure ${name(k)}`}}
   if(g.method==='heron')return {lv:'ok',t:'Exact',m:'All 3 sides measured. The size comes only from your lengths.'};
   if(allSq)return {lv:'ok',t:'Exact',m:'Every side measured and every corner square. The size comes only from your lengths.'};
   if(g.method==='square')return {lv:'ok',t:'Looks good',m:`Your lengths, with ${g.ns} of ${E.length} sides squared. The slanted ${E.length-g.ns>1?'sides use':'side uses'} the GPS angle.`};
@@ -273,6 +283,7 @@ const LOC_BLOCKED='Location is blocked for this page. In Chrome: tap the icon ju
 function dropPoint(mode={},btnEl){
   const a=AR();if(gps||!a)return;
   if(!('geolocation' in navigator)){note=['This browser can\'t use GPS. Tap "Type the size instead".',1];render();return}
+  if(liveW!=null){navigator.geolocation.clearWatch(liveW);liveW=null} // pause the blue dot so the corner gets every GPS reading
   const reads=[],btn=btnEl||$('primary');let left=S.gpsSecs,waited=0;gps=true;
   const label=t=>{if(btn){btn.textContent=t;btn.disabled=true}};
   label(`Hold still… ${left}`);const m=$('walkmsg');if(m){m.hidden=false;m.className='msg';m.textContent='Getting GPS. Hold the phone still right over the corner.'}
@@ -295,6 +306,60 @@ function dropPoint(mode={},btnEl){
     save();render()},1000);
   function stop(){navigator.geolocation.clearWatch(w);clearInterval(iv);gps=null}
 }
+
+// ---------- satellite map ----------
+// Imagery: USGS The National Map (USDA NAIP aerial photos) - public domain, free, no key.
+const TILES='https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}';
+const FD=[42.5056,-94.168]; // Fort Dodge
+const TAP_ACC=1.5; // meters: corner tapped on ~1 m aerial photo, about ±1 photo pixel each way
+let lmap=null,liveW=null,lastView=null,lastFix=null;
+const satOK=()=>!!window.L;
+function stopMap(){if(liveW!=null){try{navigator.geolocation.clearWatch(liveW)}catch(e){}liveW=null}if(lmap){try{lmap.remove()}catch(e){}lmap=null}}
+function mapBlock(a,o={}){const sat=(o.forceSat||S.mview!=='draw')&&satOK(),n=a.pts.length;
+  return `${o.forceSat?'':`<div class="toggle"><button data-act="mview" data-v="sat" aria-pressed="${sat}">Satellite</button><button data-act="mview" data-v="draw" aria-pressed="${!sat}">Drawing</button></div>`}
+  <div class="map">${sat?'<div id="lmap"></div>':'<canvas class="map"></canvas>'}<span class="cnt">${n} corner${n===1?'':'s'} marked</span></div>
+  ${!satOK()?'<div class="muted small">The satellite map needs signal, so this is the drawing.</div>':''}`}
+function mountMap(a,o={}){if($('lmap'))buildMap(a,o);else draw(a,o.hi,o.hp)}
+function goCorner(i){if(gps)return;armed=null;if(S.view.s==='corner')go({...S.view,k:i});else go({s:'corner',q:S.view.q,a:S.view.a,k:i,from:{...S.view}})}
+function buildMap(a,o){
+  const m=L.map('lmap',{maxZoom:21,zoomSnap:.5,tap:true});lmap=m;
+  L.tileLayer(TILES,{maxZoom:21,maxNativeZoom:20,attribution:'Aerial photo: USDA NAIP via USGS The National Map'}).addTo(m);
+  Q().areas.forEach(z=>{if(z===a||z.mode!=='gps'||z.pts.length<3)return; // other areas, faint, for reference
+    L.polygon(z.pts.map(p=>[p.lat,p.lon]),{color:z.kind==='sub'?'#ff8a6a':'#ffffff',weight:2,dashArray:'6 6',fillOpacity:.05,interactive:false}).addTo(m)});
+  const ll=a.pts.map(p=>[p.lat,p.lon]),col=a.kind==='sub'?'#ff6b4a':'#7dff9b';
+  if(ll.length>=3)L.polygon(ll,{color:col,weight:3,fillOpacity:.2,interactive:false}).addTo(m);
+  else if(ll.length===2)L.polyline(ll,{color:col,weight:3,interactive:false}).addTo(m);
+  ll.forEach((p,i)=>{const sel=i===o.hp,sz=sel?38:30;
+    const mk=L.marker(p,{icon:L.divIcon({className:'pin'+(sel?' sel':''),html:String(i+1),iconSize:[sz,sz]}),draggable:sel,keyboard:false,zIndexOffset:sel?1000:0}).addTo(m);
+    if(sel)mk.on('dragend',e=>{const g=e.target.getLatLng();Object.assign(a.pts[i],{lat:g.lat,lon:g.lng,acc:TAP_ACC,src:'map'});note=[`Corner ${i+1} moved on the map.`,0];save();render()});
+    else mk.on('click',()=>goCorner(i))});
+  // where to look: keep the user's own zoom while it still shows every corner
+  if(lastView&&lastView.a===a.id)m.setView(lastView.c,lastView.z);
+  if(ll.length&&!(lastView&&lastView.a===a.id&&m.getBounds().contains(L.latLngBounds(ll))))ll.length===1?m.setView(ll[0],20):m.fitBounds(L.latLngBounds(ll).pad(.2),{maxZoom:20});
+  else if(!ll.length&&!(lastView&&lastView.a===a.id))S.lastCenter?m.setView(S.lastCenter,19):m.setView(FD,13);
+  m.on('moveend',()=>{lastView={a:a.id,c:m.getCenter(),z:m.getZoom()}});
+  if(o.tap)m.on('click',e=>{if(gps)return;a.pts.push({id:uid(),lat:e.latlng.lat,lon:e.latlng.lng,acc:TAP_ACC,src:'map'});note=[`Corner ${a.pts.length} placed. Tap the next corner.`,0];save();render()});
+  if(o.moveTap!=null)m.on('click',e=>{const i=o.moveTap;Object.assign(a.pts[i],{lat:e.latlng.lat,lon:e.latlng.lng,acc:TAP_ACC,src:'map'});note=[`Corner ${i+1} moved.`,0];save();render()});
+  // live "you are here" dot
+  const Me=L.Control.extend({onAdd(){const b=L.DomUtil.create('button','meBtn');b.title='Center on me';b.innerHTML='◎';
+    L.DomEvent.on(b,'click',ev=>{L.DomEvent.stop(ev);if(lastFix)m.setView(lastFix,Math.max(m.getZoom(),19))});return b}});
+  m.addControl(new Me({position:'bottomleft'}));
+  if('geolocation' in navigator){let dot=null,circ=null,first=true;
+    liveW=navigator.geolocation.watchPosition(p=>{const g=[p.coords.latitude,p.coords.longitude];lastFix=g;
+      if(!dot){circ=L.circle(g,{radius:p.coords.accuracy,color:'#4aa3ff',weight:1,fillOpacity:.12,interactive:false}).addTo(m);
+        dot=L.circleMarker(g,{radius:8,color:'#fff',weight:3,fillColor:'#1a73e8',fillOpacity:1,interactive:false}).addTo(m)}
+      else{dot.setLatLng(g);circ.setLatLng(g).setRadius(p.coords.accuracy)}
+      if(first&&!ll.length&&!o.tap&&!(lastView&&lastView.a===a.id))m.setView(g,19);first=false},()=>{},{enableHighAccuracy:true,maximumAge:5000})}
+  setTimeout(()=>m.invalidateSize(),0);
+}
+function findAddr(){const v=(($('addr')||{}).value||'').trim();if(!v)return;S.lastAddr=v;save();
+  const m=$('walkmsg');if(m){m.hidden=false;m.className='msg';m.textContent='Searching…'}
+  // OpenStreetMap's free address search, nudged toward the Fort Dodge area
+  fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&viewbox=-94.8,42.9,-93.6,42.1&q=${encodeURIComponent(v)}`)
+   .then(r=>r.json()).then(j=>{if(!j.length){note=['Couldn\'t find that address. Try adding the town, like "Fort Dodge".',1];render();return}
+     S.lastCenter=[+j[0].lat,+j[0].lon];lastView={a:S.view.a,c:L.latLng(S.lastCenter),z:19.5};save();
+     note=[`Found it. Zoom in and tap the first corner.`,0];render()})
+   .catch(()=>{note=['Address search needs signal.',1];render()})}
 
 // ---------- screens ----------
 function go(v){S.view=v;note=v.s==='walk'?note:null;save();render();scrollTo(0,0)}
@@ -325,16 +390,21 @@ pick(){const q=Q(),hasOut=q.areas.some(a=>a.kind==='work'&&OUTLINE.includes(a.ty
   ${hasOut?'<div class="muted small">Beds and rocks inside the yard are taken out of the lawn automatically, so nothing is counted twice.</div>':''}`,
   dock:[]};
 },
-walk(){const q=Q(),a=AR(),n=a.pts.length,what=a.kind==='sub'?'the house or driveway':'the '+a.name.toLowerCase();
-  const head=n===0?[`Stand on any corner of ${what}`,'Then tap the green button at the bottom.']
+walk(){const q=Q(),a=AR(),n=a.pts.length,what=a.kind==='sub'?'the house or driveway':'the '+a.name.toLowerCase(),tap=a.how==='tap'&&satOK();
+  const head=tap?(n===0?[`Find the place, then tap the first corner of ${what}`,'Type the address, zoom in with two fingers, and tap the corner on the photo.']
+      :[`Tap corner ${n+1} on the photo`,n>=3?'Keep going around in order. When every corner is marked, tap "Done".':'Keep going around in order, the same direction the whole way.'])
+    :n===0?[`Stand on any corner of ${what}`,'Then tap the green button at the bottom.']
     :[`Walk to the next corner`,n>=3?'Go around in order. When every corner is marked, tap "Done".':'Keep going around in order, the same direction the whole way.'];
   return {title:a.name,back:()=>go(n?{s:'result',q:q.id,a:a.id}:{s:'pick',q:q.id}),
   html:`<div class="card stepc"><div class="num">${n+1}</div><div><div class="big">${head[0]}</div><div class="muted">${head[1]}</div></div></div>
    <div class="msg${note&&note[1]?' bad':''}" id="walkmsg" ${note?'':'hidden'}>${note?esc(note[0]):''}</div>
-   <div class="map"><canvas class="map"></canvas><span class="cnt">${n} corner${n===1?'':'s'} marked</span></div>
-   ${n?`${n>=2?'<div class="muted small" style="text-align:center">Messed up a corner? Tap it on the map.</div>':''}<div class="two"><button class="btn sec" data-act="undo">Undo last</button><button class="btn sec" data-act="fixc">Fix a corner</button></div>`:'<button class="btn sec" data-act="typesize">Can\'t walk it? Type the size instead</button>'}`,
-  dock:[...(n>=3?[B('Done, every corner is marked','walkdone','sec')]:[]),B(`Drop corner ${n+1} here`,'drop','',false,'primary')],
-  mount(){draw(a);note=null}};
+   ${n===0&&satOK()?`<div class="toggle"><button data-act="how" data-v="walk" aria-pressed="${!tap}">I'm there: walk it</button><button data-act="how" data-v="tap" aria-pressed="${tap}">From home: tap the map</button></div>`:''}
+   ${tap?`<div class="addr"><input id="addr" type="text" placeholder="Customer's address" value="${esc(S.lastAddr||q.job||'')}"><button class="btn" data-act="find">Find</button></div>`:''}
+   ${mapBlock(a,{forceSat:tap})}
+   ${tap?'<div class="muted small">The photo can be a few years old, and trees can hide edges. When you get there, measure the sides to make it exact.</div>':''}
+   ${n?`${n>=2?`<div class="muted small" style="text-align:center">Messed up a corner? Tap its number on the map.</div>`:''}<div class="two"><button class="btn sec" data-act="undo">Undo last</button><button class="btn sec" data-act="fixc">Fix a corner</button></div>`:'<button class="btn sec" data-act="typesize">Can\'t walk it? Type the size instead</button>'}`,
+  dock:tap?[B('Done, every corner is marked','walkdone','',n<3)]:[...(n>=3?[B('Done, every corner is marked','walkdone','sec')]:[]),B(`Drop corner ${n+1} here`,'drop','',false,'primary')],
+  mount(){mountMap(a,{tap});note=null;const i=$('addr');if(i)i.addEventListener('keydown',e=>{if(e.key==='Enter')findAddr()})}};
 },
 side(){const q=Q(),a=AR(),E=edgesOf(a.pts.length),k=S.view.k,e=E[k],key=keyOf(a,e),g=shape(a),val=sideVal(a,key)||'';
   return {title:'Measure the sides',back:()=>go(k?{...S.view,k:k-1}:{s:'walk',q:q.id,a:a.id}),
@@ -342,10 +412,10 @@ side(){const q=Q(),a=AR(),E=edgesOf(a.pts.length),k=S.view.k,e=E[k],key=keyOf(a,
    <canvas class="map"></canvas>
    <input class="bigin" id="sv" type="number" inputmode="decimal" step="0.1" placeholder="0" value="${val}">
    <div class="toggle"><button data-act="unit" data-u="steps" aria-pressed="${a.sideUnit==='steps'}">Steps</button><button data-act="unit" data-u="ft" aria-pressed="${a.sideUnit==='ft'}">Feet</button></div>
-   <div class="muted">${a.sideUnit==='steps'?'Walk it with normal steps and count them.':'Use a tape measure along the edge.'} GPS guessed about ${fmt(g.gl[k]*M2FT)} ft.</div>`,
-  dock:[B(val?(k<E.length-1?'Next side':'Finish'):'Skip, use GPS for this side','sidenext','',false,'primary')],
+   <div class="muted">${a.sideUnit==='steps'?'Walk it with normal steps and count them.':'Use a tape measure along the edge.'} ${via(a)==='map'?'The map shows':'GPS guessed'} about ${fmt(g.gl[k]*M2FT)} ft.</div>`,
+  dock:[B(val?(k<E.length-1?'Next side':'Finish'):(via(a)==='map'?'Skip, use the map for this side':'Skip, use GPS for this side'),'sidenext','',false,'primary')],
   mount(){draw(a,k);const i=$('sv');
-    i.addEventListener('input',()=>{const v=num(i.value);delete a.sides[key.split('-').reverse().join('-')];if(v>0)a.sides[key]=v;else delete a.sides[key];save();draw(a,k);$('primary').textContent=v>0?(k<E.length-1?'Next side':'Finish'):'Skip, use GPS for this side'});
+    i.addEventListener('input',()=>{const v=num(i.value);delete a.sides[key.split('-').reverse().join('-')];if(v>0)a.sides[key]=v;else delete a.sides[key];save();draw(a,k);$('primary').textContent=v>0?(k<E.length-1?'Next side':'Finish'):(via(a)==='map'?'Skip, use the map for this side':'Skip, use GPS for this side')});
     i.addEventListener('keydown',ev=>{if(ev.key==='Enter')act('sidenext')});if(!val)setTimeout(()=>i.focus(),50)}};
 },
 square(){const q=Q(),a=AR();
@@ -358,27 +428,29 @@ corner(){const q=Q(),a=AR(),n=a.pts.length,k=Math.min(S.view.k,n-1),nx=(k+1)%n,f
   return {title:`Fix corner ${k+1}`,back:()=>go(from),
   html:`<div class="msg${note&&note[1]?' bad':''}" id="walkmsg" ${note?'':'hidden'}>${note?esc(note[0]):''}</div>
    <div class="card"><b>Which corner?</b><div class="chips">${a.pts.map((p,i)=>`<button class="chip" data-act="pickc" data-i="${i}" aria-pressed="${i===k}">${i+1}</button>`).join('')}</div></div>
-   <div class="map"><canvas class="map"></canvas></div>
-   <div class="card stepc"><div class="num">${k+1}</div><div><div class="big">Stand where corner ${k+1} should really be</div><div class="muted">Then tap the green button. Your other corners and side lengths stay put.</div></div></div>
+   ${mapBlock(a)}
+   <div class="card stepc"><div class="num">${k+1}</div><div>${(S.mview!=='draw'&&satOK())
+     ?`<div class="big">Drag corner ${k+1} to the right spot${a.how==='tap'?', or tap the photo where it goes':''}</div><div class="muted">Or stand where it should be and tap the green button. Your other corners and side lengths stay put.</div>`
+     :`<div class="big">Stand where corner ${k+1} should really be</div><div class="muted">Then tap the green button. Your other corners and side lengths stay put.</div>`}</div></div>
    ${n>=2?`<div class="card"><div class="between"><div><b>Corner number</b><div class="muted small">Marked them out of order? This swaps it with the next or previous corner.</div></div>
      <div class="stepper"><button data-act="movec" data-d="-1" aria-label="Lower number" ${k===0?'disabled':''}>−</button><output>${k+1}</output><button data-act="movec" data-d="1" aria-label="Higher number" ${k===n-1?'disabled':''}>+</button></div></div></div>`:''}
    ${n>=2?B(`Add a missed corner between ${k+1} and ${nx+1}`,'insc','sec','', 'insbtn')+`<div class="muted small">For a corner you skipped. Stand on it first.</div>`:''}
    ${B(armed==='delc'+k?`Tap again to delete corner ${k+1}`:`Delete corner ${k+1}`,'delc','red')}`,
   dock:[B('Done fixing','fixdone','sec'),B(`Redo corner ${k+1} here`,'redoc','',false,'primary')],
-  mount(){draw(a,undefined,k);note=null}};
+  mount(){mountMap(a,{hp:k,moveTap:a.how==='tap'?k:null});note=null}};
 },
 result(){const q=Q(),a=AR(),c=check(a),sq=areaSq(a),t=totals(q);
   const taken=a.kind==='sub'?(t.outl?'Taken out of the yard.':'Taken out of the yard once you measure the yard.'):(!OUTLINE.includes(a.type)&&t.outl?'Taken out of the lawn so it isn\'t counted twice.':'');
   return {title:a.name,back:()=>go({s:'hub',q:q.id}),
   html:`<div class="card center"><div class="muted">${esc(a.name)}</div><div class="huge" ${a.kind==='sub'?'style="color:var(--red)"':''}>${fmt(sq)} sq ft</div>${taken?`<div class="muted small">${taken}</div>`:''}</div>
-   ${a.mode==='gps'?'<canvas class="map"></canvas><div class="muted small" style="text-align:center">Tap a corner on the map to fix it.</div>':''}
+   ${a.mode==='gps'?mapBlock(a)+'<div class="muted small" style="text-align:center">Tap a corner\'s number to fix it.</div>':''}
    <div class="check ${c.lv}"><span class="dot">${c.lv==='ok'?'✓':'!'}</span><div><b>${esc(c.t)}</b><span>${esc(c.m)}</span>${c.swap?B(c.fl,'swapfix','sec'):c.fix!=null?B(c.fl,'fix','sec'):''}${c.corner!=null?B(`Redo corner ${c.corner+1}`,'fixcorner','sec'):''}</div></div>
    <details><summary>Change something</summary><div style="display:grid;gap:10px;margin-top:8px">
      ${a.mode==='gps'&&a.pts.length>=3?B('Re-measure the sides','remeasure','sec'):''}
      ${a.mode==='gps'&&a.pts.length>=4?B(a.square?'Corners are NOT square':'Corners ARE square','togsq','sec'):''}
      ${a.mode==='gps'?B('Fix, add or delete a corner','fixc','sec')+B('Add corners at the end','more','sec'):B('Change the size','typesize','sec')}
      ${B(armed==='del'+a.id?'Tap again to remove':'Remove this area','delarea','red')}</div></details>`,
-  dock:[B('Done','hubback')],mount(){draw(a)}};
+  dock:[B('Done','hubback')],mount(){if(a.mode==='gps')mountMap(a)}};
 },
 typesize(){const q=Q(),a=AR(),lw=a.sizeMode!=='sqft';
   const ok=()=>lw?num(a.l)>0&&num(a.w)>0:num(a.sqft)>0;
@@ -463,6 +535,9 @@ function act(name,el){
     [a.pts[k],a.pts[j]]=[a.pts[j],a.pts[k]];S.view.k=j;note=[`That corner is now number ${j+1}, and the old number ${j+1} is now ${k+1}.`,0];save();render();break}
   case 'fixcorner':go({s:'corner',q:q.id,a:a.id,k:check(a).corner,from:{...S.view}});break;
   case 'swapfix':{const X=check(a).swap;if(X){[a.pts[X[0]],a.pts[X[1]]]=[a.pts[X[1]],a.pts[X[0]]];save();render()}break}
+  case 'mview':S.mview=el.dataset.v;save();render();break;
+  case 'how':a.how=el.dataset.v;save();render();break;
+  case 'find':findAddr();break;
   case 'fixdone':go(S.view.from||{s:'result',q:q.id,a:a.id});break;
   case 'walkdone':go({s:'side',q:q.id,a:a.id,k:0});break;
   case 'unit':{const v=num(($('sv')||{}).value);a.sideUnit=el.dataset.u;S.unit=a.sideUnit;save();render();break}
@@ -495,6 +570,7 @@ function act(name,el){
 }
 
 function render(){
+  stopMap();
   let v=S.view;
   if((v.q&&!Q())||(v.a&&!AR())||(v.s==='time'&&!S.timer&&!v.type))v=S.view={s:'home'};
   if(S.timer&&S.timer.start&&!S.timer.end&&v.s!=='time')v=S.view={s:'time',type:S.timer.type,from:v};
