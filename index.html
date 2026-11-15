@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Yard Quote</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#24452c">
+<style>
+:root{--bg:#eef0e8;--card:#fff;--ink:#17201a;--muted:#5a665e;--line:#d6dbcf;--moss:#2f5d3a;--top:#24452c;--on:#fff;--moss-soft:#e2ebdf;--amber:#c27416;--amber-soft:#fbefdc;--red:#b23a1e;--red-soft:#f8e3dc;--grid:#e2e6db;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#101512;--card:#19201b;--ink:#e8ede6;--muted:#9aa79e;--line:#2c352f;--moss:#86c495;--top:#16241a;--on:#0e150f;--moss-soft:#1f3326;--amber:#eaa452;--amber-soft:#36281a;--red:#f08a6c;--red-soft:#3a1f18;--grid:#1f2721;color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;cursor:pointer}
+.top{position:sticky;top:0;z-index:5;background:var(--top);color:#f2f6f0;padding:env(safe-area-inset-top,0px) max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px))}
+.top .in{max-width:560px;margin:0 auto;min-height:58px;display:flex;align-items:center;gap:4px}
+.back{background:none;border:0;color:#f2f6f0;font-weight:700;font-size:17px;padding:12px 14px 12px 4px;min-height:48px;flex:none}
+.top h1{margin:0;font-size:19px;font-weight:750;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top .in.home h1{padding-left:4px}
+main{max-width:560px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(190px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:14px}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -8px 24px #00000012;padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.dock .in{max-width:560px;margin:0 auto;display:grid;gap:10px}
+.btn{width:100%;min-height:60px;border:0;border-radius:16px;background:var(--moss);color:var(--on);font-size:19px;font-weight:750;padding:12px 16px}
+.btn.sec{background:transparent;color:var(--moss);border:2px solid var(--moss);min-height:54px;font-size:17px}
+.btn.red{background:transparent;color:var(--red);border:2px solid var(--red);min-height:54px;font-size:17px}
+.btn:disabled{opacity:.45;cursor:default}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;display:grid;gap:10px}
+.center{text-align:center;justify-items:center}
+.muted{color:var(--muted);font-size:15px}
+.small{font-size:14px}
+h2{margin:0;font-size:24px;line-height:1.2;font-weight:800}
+.big{font-size:21px;font-weight:750;line-height:1.3}
+.huge{font-size:46px;font-weight:850;line-height:1;font-variant-numeric:tabular-nums;color:var(--moss)}
+.stepc{display:flex;gap:14px;align-items:center}
+.num{width:48px;height:48px;border-radius:50%;background:var(--amber);color:var(--on);font-weight:850;font-size:22px;display:grid;place-items:center;flex:none}
+.msg{border-radius:14px;padding:12px 14px;font-size:16px;font-weight:600;background:var(--moss-soft)}
+.msg.bad{background:var(--red-soft);color:var(--red)}
+canvas.map{display:block;width:100%;height:270px;border-radius:18px;border:1px solid var(--line);background:var(--bg)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{position:relative;display:grid;gap:6px;align-content:start;justify-items:start;text-align:left;padding:16px;border-radius:18px;background:var(--card);border:2px solid var(--line);color:var(--ink);min-height:140px}
+.tile:active{border-color:var(--moss)}
+.tile svg{width:46px;height:46px;color:var(--moss)}
+.tile b{font-size:18px;line-height:1.2}
+.tile span{font-size:14px;color:var(--muted)}
+.tile.wide{grid-column:1/-1;min-height:0;grid-template-columns:46px 1fr;align-items:center;column-gap:14px}
+.tile.wide>div{display:grid;gap:2px}
+.tile.skip{border-style:dashed}
+.tile.skip svg{color:var(--red)}
+.tiles{padding-top:8px}
+.badge{position:absolute;top:-11px;left:14px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--amber);color:var(--on);border-radius:99px;padding:3px 9px}
+.toggle{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:4px}
+.toggle button{min-height:50px;border:0;border-radius:12px;background:transparent;color:var(--muted);font-weight:750;font-size:17px}
+.toggle button[aria-pressed=true]{background:var(--moss);color:var(--on)}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+.map{position:relative}.map .cnt{position:absolute;left:12px;top:10px;font-size:14px;font-weight:750;color:var(--muted);background:var(--card);border-radius:99px;padding:3px 10px}
+input{font:inherit;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:14px;padding:14px;width:100%;min-width:0}
+input:focus{outline:none;border-color:var(--moss)}
+.bigin{font-size:40px;font-weight:850;text-align:center;padding:12px;font-variant-numeric:tabular-nums}
+.lbl{display:grid;gap:6px;font-weight:700;font-size:16px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.list{display:grid;gap:10px}
+.item{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px;min-height:72px;background:var(--card);border:1px solid var(--line);border-radius:16px;color:var(--ink)}
+.item .ic{width:42px;height:42px;border-radius:12px;background:var(--moss-soft);color:var(--moss);display:grid;place-items:center;flex:none}
+.item .ic svg{width:28px;height:28px}
+.item.sub .ic{background:var(--red-soft);color:var(--red)}
+.item .tx{flex:1;min-width:0;display:grid}
+.item .tx b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .rt{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.item .rt small{display:block;font-weight:600;font-size:13px}
+.ok{color:var(--moss)}.no{color:var(--red)}
+.chev{width:10px;height:10px;border-right:2.5px solid var(--muted);border-top:2.5px solid var(--muted);transform:rotate(45deg);flex:none;margin-right:4px}
+.price{font-size:58px;font-weight:900;line-height:1;color:var(--moss);font-variant-numeric:tabular-nums}
+.say{background:var(--bg);border-radius:14px;padding:14px;font-size:18px;line-height:1.4;text-align:left;width:100%}
+.stepper{display:flex;align-items:center;gap:12px}
+.stepper button:disabled{opacity:.3}
+.stepper button{width:56px;height:56px;border-radius:14px;border:2px solid var(--moss);background:transparent;color:var(--moss);font-size:28px;font-weight:700;line-height:1}
+.stepper output{min-width:44px;text-align:center;font-size:26px;font-weight:850;font-variant-numeric:tabular-nums}
+.between{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.check{display:flex;gap:12px;align-items:flex-start;border-radius:16px;padding:14px;background:var(--moss-soft)}
+.check.warn{background:var(--amber-soft)}
+.check.bad{background:var(--red-soft)}
+.check .dot{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:900;color:#fff;background:var(--moss);flex:none;font-size:17px}
+.check.warn .dot{background:var(--amber)}.check.bad .dot{background:var(--red)}
+.check>div{display:grid;gap:8px;flex:1}
+table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+td{padding:8px 0;border-bottom:1px solid var(--line);vertical-align:top}td:last-child{text-align:right;padding-left:12px}
+details summary{font-weight:700;color:var(--moss);cursor:pointer;padding:6px 0;list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"+ "}details[open] summary::before{content:"− "}
+.clock{font-size:72px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+ol.howto{margin:0;padding-left:22px;display:grid;gap:6px}
+.spd{display:grid;gap:8px;padding:14px 0;border-top:1px solid var(--line)}
+.spd:first-of-type{border-top:0;padding-top:0}
+.spd .row{display:grid;grid-template-columns:1fr 120px;gap:10px;align-items:center}
+.empty{text-align:center;padding:28px 12px;color:var(--muted)}
+.sqicon{width:64px;height:64px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{width:54px;height:54px;border-radius:50%;border:2.5px solid var(--amber);background:transparent;color:var(--amber);font-weight:850;font-size:19px}
+.chip[aria-pressed=true]{background:var(--amber);color:var(--on)}
+canvas.map{cursor:pointer}
+</style>
+</head>
+<body>
+<header class="top"><div class="in" id="hdr"></div></header>
+<main id="main"></main>
+<footer class="dock"><div class="in" id="dock"></div></footer>
+
+<script>
+// ---------- icons ----------
+const IC={
+lawn:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 40h36M10 40c0-8 2-14 6-18M18 40c0-10-2-18-4-22M24 40c0-12 2-20 6-26M32 40c0-9-1-15-4-19M38 40c0-7 1-12 4-15"/></svg>',
+bag:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M14 16h20l4 26H10z"/><path d="M18 16c0-5 2-8 6-8s6 3 6 8"/><path d="M20 28c2 2 6 2 8 0" stroke-linecap="round"/></svg>',
+rock:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M6 38l5-10 9-3 6 6 2 7z"/><path d="M24 38l6-12 8-2 5 7-1 7z"/><path d="M15 22l4-7 7 1 2 6"/></svg>',
+bed:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="24" cy="15" r="5"/><path d="M24 20v18M24 30c-5 0-9-3-10-7M24 27c5 0 8-3 9-6M6 40h36"/></svg>',
+house:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M8 22L24 9l16 13"/><path d="M12 19v21h24V19"/><path d="M21 40V29h6v11"/><path d="M6 6l36 36" stroke-linecap="round"/></svg>',
+square:'<svg class="sqicon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"><rect x="10" y="10" width="44" height="44" rx="2"/><path d="M10 44h10v10" stroke-width="3"/></svg>',
+slant:'<svg class="sqicon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"><path d="M10 54V18l26-8 18 44z"/></svg>',
+gear:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3"><circle cx="24" cy="24" r="6"/><path d="M24 6v6M24 36v6M6 24h6M36 24h6M11 11l4 4M33 33l4 4M37 11l-4 4M15 33l-4 4" stroke-linecap="round"/></svg>',
+clock:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="24" cy="26" r="15"/><path d="M24 18v8l6 4M20 6h8"/></svg>'};
+
+// ---------- data ----------
+const TYPES=[
+ {id:'lawn',name:'Lawn',long:'Mulching leaves with a mower',speed:2700,src:'Your Nov 14 job: about 3,500 sq ft in about 1.3 hr'},
+ {id:'bag',name:'Rake & bag lawn',long:'Raking lawn leaves into bags',speed:0,src:'Not timed yet'},
+ {id:'heavy',name:'Rocks & landscaping',long:'Heavy leaves in rock (blow + rake)',speed:370,src:'Your Nov 14 job: 925 sq ft in about 2.5 hr'},
+ {id:'beds',name:'Plant beds',long:'Leaves in plant beds (hand rake)',speed:0,src:'Not timed yet'}];
+const OUTLINE=['lawn','bag'];
+const TILE={lawn:'Walk around the whole yard edge',bag:'Walk around the whole yard edge',heavy:'Rock beds, gravel, landscaping',beds:'Flower and plant beds'};
+const KEY='yq2',M2FT=3.28084,M2FT2=10.7639;
+const clone=o=>JSON.parse(JSON.stringify(o));
+const fresh=()=>({step:2.03,step10:244,rate:25,buffer:20,bagCost:1,travel:0,gpsSecs:8,unit:'steps',types:clone(TYPES),quotes:[],view:{s:'home'},timer:null});
+let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!S||!S.quotes)S=fresh();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+S.quotes.forEach(q=>q.areas.forEach(a=>{if(a.pts.some(p=>!p.id)){a.pts.forEach(p=>p.id=p.id||uid());const ns={};
+  Object.entries(a.sides||{}).forEach(([k,v])=>{const m=k.match(/^(\d+)-(\d+)$/),A=m&&a.pts[m[1]-1],Bp=m&&a.pts[m[2]-1];if(A&&Bp)ns[A.id+'-'+Bp.id]=v});a.sides=ns}}));
+const $=id=>document.getElementById(id),num=v=>{v=parseFloat(v);return isFinite(v)?v:0},fmt=n=>Math.round(n).toLocaleString();
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const typ=id=>S.types.find(t=>t.id===id);
+const Q=()=>S.quotes.find(q=>q.id===S.view.q);
+const AR=()=>{const q=Q();return q&&q.areas.find(a=>a.id===S.view.a)};
+
+// ---------- geometry ----------
+// lat/lon -> local meters (flat-earth projection, fine at yard size)
+function toXY(pts){const lat0=pts[0].lat*Math.PI/180;return pts.map(p=>[(p.lon-pts[0].lon)*111320*Math.cos(lat0),(p.lat-pts[0].lat)*110540])}
+function poly(xy){let a=0,per=0;for(let i=0;i<xy.length;i++){const [x1,y1]=xy[i],[x2,y2]=xy[(i+1)%xy.length];a+=x1*y2-x2*y1;per+=Math.hypot(x2-x1,y2-y1)}return {area:Math.abs(a)/2,per}}
+function edgesOf(n){const E=[],m=n>=3?n:n-1;for(let i=0;i<m;i++)E.push([i,(i+1)%n]);return E}
+const keyOf=(a,[i,j])=>`${a.pts[i].id}-${a.pts[j].id}`; // sides are tied to the two corners, not their numbers
+const toFt=(a,v)=>v*(a.sideUnit==='steps'?S.step:1);
+const sideVal=(a,k)=>a.sides[k]??a.sides[k.split('-').reverse().join('-')];
+function measured(a,k){const v=num(sideVal(a,k));return v>0?toFt(a,v)/M2FT:0}
+const accFt=a=>a.pts.length?a.pts.reduce((s,p)=>s+p.acc,0)/a.pts.length*M2FT:0;
+// GPS gives each side's direction; your tape/steps give its length. With square corners on,
+// sides within 25° of square snap to exact 90°. Any leftover gap is spread around the sides
+// in proportion to length (the compass rule land surveyors use).
+function shape(a){
+  const pts=a.pts,n=pts.length;
+  if(n<2)return {area:0,per:0,xy:n?[[0,0]]:[],method:'none',gl:[],L:[],ml:[],nm:0,ns:0,ang:[]};
+  const xy=toXY(pts),E=edgesOf(n);
+  const d=E.map(([i,j])=>[xy[j][0]-xy[i][0],xy[j][1]-xy[i][1]]),gl=d.map(v=>Math.hypot(v[0],v[1]));
+  const ml=E.map(e=>measured(a,keyOf(a,e))),nm=ml.filter(v=>v>0).length;
+  let ang=d.map(w=>Math.atan2(w[1],w[0]));
+  if(n<3)return {area:0,per:0,xy,method:'none',gl,L:gl,ml,nm,ns:0,ang};
+  if(!nm&&!a.square){const p=poly(xy);return {...p,xy,method:'gps',gl,L:gl,ml,nm:0,ns:0,ang,gap:0}}
+  const L=ml.map((v,k)=>v||gl[k]),per=L.reduce((s,v)=>s+v,0);let ns=0;
+  if(a.square&&n>=4){const kL=gl.indexOf(Math.max(...gl)),ref=ang[kL],Q=Math.PI/2,TOL=25*Math.PI/180;
+    ang=ang.map(t=>{const q=Math.round((t-ref)/Q),off=t-ref-q*Q;if(Math.abs(off)<=TOL){ns++;return ref+q*Q}return t})}
+  const v=ang.map((t,k)=>[Math.cos(t)*L[k],Math.sin(t)*L[k]]);
+  const ex=v.reduce((s,w)=>s+w[0],0),ey=v.reduce((s,w)=>s+w[1],0),gap=Math.hypot(ex,ey);
+  const out=[[0,0]];let cx=0,cy=0;
+  for(let k=0;k<n-1;k++){cx+=v[k][0]-ex*L[k]/per;cy+=v[k][1]-ey*L[k]/per;out.push([cx,cy])}
+  let area=poly(out).area,method=a.square&&n>=4?'square':'adjusted';
+  if(n===3&&nm===3){const [p,q,r]=L,s=(p+q+r)/2,h=s*(s-p)*(s-q)*(s-r);if(h>0){area=Math.sqrt(h);method='heron'}else method='badtri'}
+  return {area,per,xy:out,gap,ex,ey,method,gl,L,ml,nm,ns,ang};
+}
+function crossing(a){const n=a.pts.length;if(n<4)return null;const p=toXY(a.pts);
+  const o=(A,B,C)=>Math.sign((B[0]-A[0])*(C[1]-A[1])-(B[1]-A[1])*(C[0]-A[0]));
+  for(let i=0;i<n;i++)for(let j=i+2;j<n;j++){if(i===0&&j===n-1)continue;const a1=p[i],a2=p[(i+1)%n],b1=p[j],b2=p[(j+1)%n];
+    if(o(a1,a2,b1)*o(a1,a2,b2)<0&&o(b1,b2,a1)*o(b1,b2,a2)<0)return [i+1,j]} // swapping these two untangles it
+  return null}
+function areaSq(a){
+  if(a.mode==='size')return a.sizeMode==='sqft'?num(a.sqft):toFt(a,num(a.l))*toFt(a,num(a.w));
+  return shape(a).area*M2FT2;
+}
+// Plain-English check of an area: is the number trustworthy, and if not, which side to fix
+function check(a){
+  if(a.mode==='size')return areaSq(a)>0?{lv:'ok',t:'Typed in by you',m:'This size came from your own numbers.'}:{lv:'bad',t:'No size yet',m:'Type the length and width.'};
+  const n=a.pts.length;if(n<3)return {lv:'bad',t:'Not enough corners',m:'An area needs at least 3 corners.'};
+  const X=crossing(a);if(X)return {lv:'bad',t:'The lines cross',m:`Corners ${X[0]+1} and ${X[1]+1} look like they're in each other's spot. Swapping them fixes it.`,swap:X,fl:`Swap corners ${X[0]+1} and ${X[1]+1}`};
+  const g=shape(a),acc=accFt(a),E=edgesOf(n),step=S.step,nm=g.nm;
+  const name=k=>`side ${E[k][0]+1} → ${E[k][1]+1}`;
+  if(!nm){const err=g.per*M2FT*acc*0.5;
+    return {lv:'warn',t:'GPS only',m:`This could be off by about ${fmt(err)} sq ft either way. Measuring the sides fixes that.`,fix:0,fl:'Measure the sides'}}
+  // a measured side can't be further from the GPS side than 2× GPS accuracy plus 2 of your steps
+  const lim=2*acc+2*step;
+  for(let k=0;k<E.length;k++)if(g.ml[k]&&Math.abs(g.ml[k]-g.gl[k])*M2FT>lim)
+    return {lv:'bad',t:`Check ${name(k)}`,m:`You typed ${fmt(num(sideVal(a,keyOf(a,E[k]))))} ${a.sideUnit==='steps'?`steps (${fmt(g.ml[k]*M2FT)} ft)`:'ft'}, but GPS saw about ${fmt(g.gl[k]*M2FT)} ft. Wrong number, or feet and steps mixed up?`,fix:k,fl:`Fix ${name(k)}`};
+  if(g.method==='badtri'){const k=g.L.indexOf(Math.max(...g.L));return {lv:'bad',t:'These sides can\'t make a triangle',m:'One of the 3 lengths is wrong. Re-measure the longest one first.',fix:k,fl:`Fix ${name(k)}`}}
+  const gapFt=g.gap*M2FT,um=E.length-nm;
+  const allSq=g.method==='square'&&g.ns===E.length;
+  const glim=g.method==='square'?2*step+(um?2*acc:0)+(g.ns<E.length?Math.sqrt(E.length-g.ns)*acc:0):Math.sqrt(E.length)*acc+2*step;
+  if(g.method!=='heron'&&gapFt>glim){
+    // Find the measured side that disagrees most with GPS. Its worse-looking end is the suspect corner.
+    const dif=g.ml.map((v,k)=>v?Math.abs(v-g.gl[k]):-1);let bk=dif.indexOf(Math.max(...dif));
+    if(dif[bk]<0){let best=0;g.ang.forEach((t,k)=>{const s=Math.abs(Math.cos(t-Math.atan2(g.ey,g.ex)))*g.L[k];if(s>best){best=s;bk=k}})}
+    const nE=E.length,prev=(bk-1+nE)%nE,next=(bk+1)%nE,ci=(dif[prev]>dif[next])?E[bk][0]:E[bk][1];
+    return {lv:'bad',t:'The sides don\'t add up',m:`They miss closing by ${gapFt.toFixed(1)} ft. Either ${name(bk)} was measured wrong, or corner ${ci+1} is in the wrong spot. Look at the map: if corner ${ci+1} looks out of place, redo it. If not, re-measure the side.${g.method==='square'?' (If a corner isn\'t really square, answer "No" to the square-corners question.)':''}`,fix:bk,fl:`Re-measure ${name(bk)}`,corner:ci};
+  }
+  if(um){const k=g.ml.findIndex(v=>!v);return {lv:'warn',t:`${um} side${um>1?'s':''} not measured`,m:`Those use GPS, which can be off by about ${fmt(2*acc)} ft per side. Measure ${um>1?'them':'it'} to be exact.`,fix:k,fl:`Measure ${name(k)}`}}
+  if(g.method==='heron')return {lv:'ok',t:'Exact',m:'All 3 sides measured. The size comes only from your lengths.'};
+  if(allSq)return {lv:'ok',t:'Exact',m:'Every side measured and every corner square. The size comes only from your lengths.'};
+  if(g.method==='square')return {lv:'ok',t:'Looks good',m:`Your lengths, with ${g.ns} of ${E.length} sides squared. The slanted ${E.length-g.ns>1?'sides use':'side uses'} the GPS angle.`};
+  return {lv:'ok',t:'Looks good',m:'Your lengths, with the corner angles from GPS. Close enough to price.'};
+}
+function totals(q){
+  const outl=(q.areas.find(a=>a.kind==='work'&&OUTLINE.includes(a.type))||{}).type;
+  const net={};S.types.forEach(t=>net[t.id]=0);
+  q.areas.forEach(a=>{const sq=areaSq(a);
+    if(a.kind==='work'){net[a.type]+=sq;if(!OUTLINE.includes(a.type)&&outl)net[outl]-=sq}
+    else if(outl)net[outl]-=sq});
+  let hrs=0,sq=0;const rows=[],miss=[];
+  S.types.forEach(t=>{const n=Math.max(0,net[t.id]);if(n<1)return;sq+=n;
+    if(t.speed>0){const h=n/t.speed;hrs+=h;rows.push([t.name,`${fmt(n)} sq ft ÷ ${fmt(t.speed)} per hr = ${h.toFixed(2)} hr`])}
+    else{miss.push(t);rows.push([t.name,`${fmt(n)} sq ft, not timed yet`])}});
+  const buf=hrs*S.buffer/100,tot=hrs+buf,labor=tot*S.rate,bags=(q.bags||0)*S.bagCost,price=Math.ceil((labor+bags+S.travel)/5)*5;
+  rows.push(['Work time',hrs.toFixed(2)+' hr'],[`Extra ${S.buffer}% for surprises`,'+'+buf.toFixed(2)+' hr'],[`${tot.toFixed(2)} hr × $${S.rate}/hr`,'$'+labor.toFixed(2)]);
+  if(bags)rows.push([`${q.bags} bags × $${S.bagCost}`,'$'+bags.toFixed(2)]);
+  if(S.travel)rows.push(['Travel','$'+S.travel]);
+  rows.push(['Rounded up to the next $5',`$${price}`]);
+  const half=Math.max(.5,Math.ceil(tot*2)/2);
+  const say=hrs?`It looks like about ${half} hours of work. I'll do the whole job for $${price}${bags?', bags included':''}.`:'';
+  return {rows,hrs,tot,half,price:hrs?price:0,miss,sq,say,outl};
+}
+
+// ---------- map drawing ----------
+let mapPts=[];
+function draw(a,hi,hp){
+  const c=document.querySelector('canvas.map');if(!c||!a)return;
+  const r=c.getBoundingClientRect();if(!r.width)return;const dpr=devicePixelRatio||1;c.width=r.width*dpr;c.height=r.height*dpr;
+  const x=c.getContext('2d');x.scale(dpr,dpr);
+  const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim();
+  const g=shape(a);let xy=g.xy;const E=edgesOf(xy.length),pad=44;
+  if(xy.length>=2){let bi=0,bl=0;E.forEach(([i,j],k)=>{const l=Math.hypot(xy[j][0]-xy[i][0],xy[j][1]-xy[i][1]);if(l>bl){bl=l;bi=k}});
+    const [i,j]=E[bi],t=-Math.atan2(xy[j][1]-xy[i][1],xy[j][0]-xy[i][0]),cs=Math.cos(t),sn=Math.sin(t);xy=xy.map(([p,q])=>[p*cs-q*sn,p*sn+q*cs])}
+  let s=8,minx=0,miny=0,ox=r.width/2,oy=r.height/2;
+  if(xy.length){const xs=xy.map(p=>p[0]),ys=xy.map(p=>p[1]);minx=Math.min(...xs);miny=Math.min(...ys);const w=Math.max(...xs)-minx,h=Math.max(...ys)-miny;
+    s=Math.min((r.width-2*pad)/Math.max(w,1),(r.height-2*pad)/Math.max(h,1),12);ox=(r.width-w*s)/2;oy=(r.height-h*s)/2}
+  const cell=10/M2FT*s;if(cell>6){x.strokeStyle=col('--grid');x.lineWidth=1;x.beginPath();
+    for(let gx=ox%cell;gx<r.width;gx+=cell){x.moveTo(gx,0);x.lineTo(gx,r.height)}for(let gy=(r.height-oy)%cell;gy<r.height;gy+=cell){x.moveTo(0,gy);x.lineTo(r.width,gy)}x.stroke()}
+  if(!xy.length){x.fillStyle=col('--muted');x.font='600 16px system-ui';x.textAlign='center';x.fillText('Your corners will show up here',r.width/2,r.height/2);return}
+  const P=p=>[ox+(p[0]-minx)*s,r.height-oy-(p[1]-miny)*s],sub=a.kind==='sub';
+  x.lineJoin='round';x.strokeStyle=col(sub?'--red':'--moss');x.fillStyle=col(sub?'--red-soft':'--moss-soft');x.lineWidth=3;
+  x.beginPath();xy.forEach((p,i)=>{const [u,v]=P(p);i?x.lineTo(u,v):x.moveTo(u,v)});if(xy.length>=3)x.closePath();
+  if(xy.length>=3)x.fill();if(sub)x.setLineDash([8,6]);x.stroke();x.setLineDash([]);
+  if(hi!=null&&E[hi]){const [u1,v1]=P(xy[E[hi][0]]),[u2,v2]=P(xy[E[hi][1]]);x.strokeStyle=col('--amber');x.lineWidth=8;x.lineCap='round';x.beginPath();x.moveTo(u1,v1);x.lineTo(u2,v2);x.stroke()}
+  x.font='700 13px system-ui';x.textAlign='center';x.textBaseline='middle';
+  E.forEach((e,k)=>{const lf=(g.L[k]||0)*M2FT;if(!lf)return;const [u1,v1]=P(xy[e[0]]),[u2,v2]=P(xy[e[1]]);
+    const t=(g.ml[k]?'':'~')+fmt(lf)+' ft',mx=(u1+u2)/2,my=(v1+v2)/2,w=x.measureText(t).width+12;
+    x.fillStyle=col(k===hi?'--amber':'--card');x.beginPath();x.roundRect?x.roundRect(mx-w/2,my-11,w,22,11):x.rect(mx-w/2,my-11,w,22);x.fill();
+    x.fillStyle=k===hi?'#fff':col(g.ml[k]?'--ink':'--muted');x.fillText(t,mx,my)});
+  mapPts=xy.map(P);
+  if(hp!=null&&xy[hp]){const [u,v]=P(xy[hp]);x.beginPath();x.arc(u,v,21,0,7);x.strokeStyle=col('--ink');x.lineWidth=3;x.stroke()}
+  xy.forEach((p,i)=>{const [u,v]=P(p);x.beginPath();x.arc(u,v,i===hp?15:12,0,7);x.fillStyle=col('--amber');x.fill();x.fillStyle='#fff';x.font='800 13px system-ui';x.fillText(i+1,u,v+.5)});
+}
+
+// ---------- GPS ----------
+let gps=null,note=null; // note = one-time message shown on the walk screen
+const LOC_BLOCKED='Location is blocked for this page. In Chrome: tap the icon just left of the web address → Permissions → Location → Allow. Then tap the green button again.';
+function dropPoint(mode={},btnEl){
+  const a=AR();if(gps||!a)return;
+  if(!('geolocation' in navigator)){note=['This browser can\'t use GPS. Tap "Type the size instead".',1];render();return}
+  const reads=[],btn=btnEl||$('primary');let left=S.gpsSecs,waited=0;gps=true;
+  const label=t=>{if(btn){btn.textContent=t;btn.disabled=true}};
+  label(`Hold still… ${left}`);const m=$('walkmsg');if(m){m.hidden=false;m.className='msg';m.textContent='Getting GPS. Hold the phone still right over the corner.'}
+  const w=navigator.geolocation.watchPosition(p=>reads.push(p.coords),
+    e=>{stop();note=[e.code===1?LOC_BLOCKED:'No GPS signal. Step away from the house or trees and try again.',1];render()},
+    {enableHighAccuracy:true,maximumAge:0,timeout:30000});
+  const iv=setInterval(()=>{left--;waited++;
+    if(left>0){label(`Hold still… ${left}`);return}
+    if(!reads.length){if(waited>40){stop();note=['Still no GPS. Step into the open and try again.',1];render()}else label('Waiting for GPS…');return}
+    stop();
+    const best=Math.min(...reads.map(r=>r.accuracy)),use=reads.filter(r=>r.accuracy<=best*1.5);
+    let sw=0,la=0,lo=0;use.forEach(r=>{const wt=1/(r.accuracy*r.accuracy);sw+=wt;la+=r.latitude*wt;lo+=r.longitude*wt});
+    const pt={lat:la/sw,lon:lo/sw,acc:Math.round(best*10)/10},af=best*M2FT;let num_;
+    if(mode.replace!=null){pt.id=a.pts[mode.replace].id;a.pts[mode.replace]=pt;num_=mode.replace+1}
+    else if(mode.insert!=null){pt.id=uid();a.pts.splice(mode.insert,0,pt);num_=mode.insert+1;S.view.k=mode.insert}
+    else{pt.id=uid();a.pts.push(pt);num_=a.pts.length}
+    const what=mode.replace!=null?`Corner ${num_} redone`:mode.insert!=null?`New corner ${num_} added (the ones after it moved up a number)`:`Corner ${num_} saved`;
+    note=af>40?[`${what}, but GPS is weak here (±${fmt(af)} ft). Measuring the sides will fix it.`,1]:[`${what} (GPS ±${fmt(af)} ft).`,0];
+    try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}
+    save();render()},1000);
+  function stop(){navigator.geolocation.clearWatch(w);clearInterval(iv);gps=null}
+}
+
+// ---------- screens ----------
+function go(v){S.view=v;note=v.s==='walk'?note:null;save();render();scrollTo(0,0)}
+function newArea(kind,type){const q=Q();const a={id:uid(),kind,type,name:kind==='sub'?'House / driveway':typ(type).name,mode:'gps',pts:[],sides:{},sideUnit:S.unit,square:false,sizeMode:'lw',l:0,w:0,sqft:0};q.areas.push(a);go({s:'walk',q:q.id,a:a.id})}
+const B=(label,act,cls='',dis=false,id='')=>`<button class="btn ${cls}" data-act="${act}" ${id?`id="${id}"`:''} ${dis?'disabled':''}>${label}</button>`;
+let armed=null;
+
+const SCREENS={
+home(){
+  const qs=S.quotes;
+  return {title:'Yard Quote',
+  html:`${qs.length?`<div class="list">${qs.map(q=>{const t=totals(q);return `<button class="item" data-act="openq" data-id="${q.id}"><span class="ic">${IC.lawn}</span><span class="tx"><b>${esc(q.job)||'No name'}</b><span class="muted small">${new Date(q.created).toLocaleDateString(undefined,{month:'short',day:'numeric'})} · ${q.areas.length} area${q.areas.length===1?'':'s'}</span></span><span class="rt">${t.price?'$'+t.price:''}</span><span class="chev"></span></button>`}).join('')}</div>`
+   :`<div class="card center"><div class="big">Measure a yard, get a fair price.</div><div class="muted">You walk the corners with your phone, measure the sides, and the price comes from how fast you really work.</div></div>`}
+   <button class="item" data-act="settings"><span class="ic">${IC.gear}</span><span class="tx"><b>Settings & your speeds</b><span class="muted small">Step length, hourly rate, timed tests</span></span><span class="chev"></span></button>`,
+  dock:[B('+ New quote','newq')]};
+},
+name(){const q=Q();
+  return {title:'New quote',back:()=>go({s:'hub',q:q.id}),
+  html:`<h2>Who is this quote for?</h2><input id="job" type="text" autocomplete="off" placeholder="Name or address" value="${esc(q.job)}" style="font-size:20px"><div class="muted">You can skip this.</div>`,
+  dock:[B('Next','namenext')],mount(){const i=$('job');i.addEventListener('input',()=>{q.job=i.value;save()});i.addEventListener('keydown',e=>{if(e.key==='Enter')act('namenext')})}};
+},
+pick(){const q=Q(),hasOut=q.areas.some(a=>a.kind==='work'&&OUTLINE.includes(a.type)),hasSub=q.areas.some(a=>a.kind==='sub');
+  const tile=t=>`<button class="tile" data-act="pick" data-kind="work" data-type="${t.id}">${(!hasOut&&OUTLINE.includes(t.id))?'<span class="badge">Start here</span>':''}${IC[{lawn:'lawn',bag:'bag',heavy:'rock',beds:'bed'}[t.id]]}<b>${t.name}</b><span>${TILE[t.id]}</span></button>`;
+  return {title:'What are you measuring?',back:()=>go(q.areas.length?{s:'hub',q:q.id}:{s:'name',q:q.id}),
+  html:`${!hasOut?'<div class="muted">Start with the lawn: walk the edge of the whole yard. Then measure the house and any beds inside it.</div>':''}
+  <div class="tiles">${S.types.map(tile).join('')}
+  <button class="tile wide skip" data-act="pick" data-kind="sub" data-type="lawn">${hasOut&&!hasSub?'<span class="badge">Don\'t forget</span>':''}${IC.house}<div><b>House, driveway or patio</b><span>Not worked on. It gets taken out of the yard.</span></div></button></div>
+  ${hasOut?'<div class="muted small">Beds and rocks inside the yard are taken out of the lawn automatically, so nothing is counted twice.</div>':''}`,
+  dock:[]};
+},
+walk(){const q=Q(),a=AR(),n=a.pts.length,what=a.kind==='sub'?'the house or driveway':'the '+a.name.toLowerCase();
+  const head=n===0?[`Stand on any corner of ${what}`,'Then tap the green button at the bottom.']
+    :[`Walk to the next corner`,n>=3?'Go around in order. When every corner is marked, tap "Done".':'Keep going around in order, the same direction the whole way.'];
+  return {title:a.name,back:()=>go(n?{s:'result',q:q.id,a:a.id}:{s:'pick',q:q.id}),
+  html:`<div class="card stepc"><div class="num">${n+1}</div><div><div class="big">${head[0]}</div><div class="muted">${head[1]}</div></div></div>
+   <div class="msg${note&&note[1]?' bad':''}" id="walkmsg" ${note?'':'hidden'}>${note?esc(note[0]):''}</div>
+   <div class="map"><canvas class="map"></canvas><span class="cnt">${n} corner${n===1?'':'s'} marked</span></div>
+   ${n?`${n>=2?'<div class="muted small" style="text-align:center">Messed up a corner? Tap it on the map.</div>':''}<div class="two"><button class="btn sec" data-act="undo">Undo last</button><button class="btn sec" data-act="fixc">Fix a corner</button></div>`:'<button class="btn sec" data-act="typesize">Can\'t walk it? Type the size instead</button>'}`,
+  dock:[...(n>=3?[B('Done, every corner is marked','walkdone','sec')]:[]),B(`Drop corner ${n+1} here`,'drop','',false,'primary')],
+  mount(){draw(a);note=null}};
+},
+side(){const q=Q(),a=AR(),E=edgesOf(a.pts.length),k=S.view.k,e=E[k],key=keyOf(a,e),g=shape(a),val=sideVal(a,key)||'';
+  return {title:'Measure the sides',back:()=>go(k?{...S.view,k:k-1}:{s:'walk',q:q.id,a:a.id}),
+  html:`<div class="card stepc"><div class="num">${k+1}</div><div><div class="muted">Side ${k+1} of ${E.length}</div><div class="big">Corner ${e[0]+1} → corner ${e[1]+1}</div></div></div>
+   <canvas class="map"></canvas>
+   <input class="bigin" id="sv" type="number" inputmode="decimal" step="0.1" placeholder="0" value="${val}">
+   <div class="toggle"><button data-act="unit" data-u="steps" aria-pressed="${a.sideUnit==='steps'}">Steps</button><button data-act="unit" data-u="ft" aria-pressed="${a.sideUnit==='ft'}">Feet</button></div>
+   <div class="muted">${a.sideUnit==='steps'?'Walk it with normal steps and count them.':'Use a tape measure along the edge.'} GPS guessed about ${fmt(g.gl[k]*M2FT)} ft.</div>`,
+  dock:[B(val?(k<E.length-1?'Next side':'Finish'):'Skip, use GPS for this side','sidenext','',false,'primary')],
+  mount(){draw(a,k);const i=$('sv');
+    i.addEventListener('input',()=>{const v=num(i.value);delete a.sides[key.split('-').reverse().join('-')];if(v>0)a.sides[key]=v;else delete a.sides[key];save();draw(a,k);$('primary').textContent=v>0?(k<E.length-1?'Next side':'Finish'):'Skip, use GPS for this side'});
+    i.addEventListener('keydown',ev=>{if(ev.key==='Enter')act('sidenext')});if(!val)setTimeout(()=>i.focus(),50)}};
+},
+square(){const q=Q(),a=AR();
+  return {title:'One more question',back:()=>go({s:'side',q:q.id,a:a.id,k:edgesOf(a.pts.length).length-1}),
+  html:`<h2>Are the corners square, like the corner of a box?</h2><div class="muted">Most yards and houses are. If one side runs at a slant, that's fine: pick Yes and the slanted side keeps its real angle.</div>
+  <div class="tiles"><button class="tile" data-act="sq" data-v="1">${IC.square}<b>Yes, mostly square</b></button><button class="tile" data-act="sq" data-v="0">${IC.slant}<b>No, it's an odd shape</b></button></div>`,
+  dock:[]};
+},
+corner(){const q=Q(),a=AR(),n=a.pts.length,k=Math.min(S.view.k,n-1),nx=(k+1)%n,from=S.view.from||{s:'result',q:q.id,a:a.id};
+  return {title:`Fix corner ${k+1}`,back:()=>go(from),
+  html:`<div class="msg${note&&note[1]?' bad':''}" id="walkmsg" ${note?'':'hidden'}>${note?esc(note[0]):''}</div>
+   <div class="card"><b>Which corner?</b><div class="chips">${a.pts.map((p,i)=>`<button class="chip" data-act="pickc" data-i="${i}" aria-pressed="${i===k}">${i+1}</button>`).join('')}</div></div>
+   <div class="map"><canvas class="map"></canvas></div>
+   <div class="card stepc"><div class="num">${k+1}</div><div><div class="big">Stand where corner ${k+1} should really be</div><div class="muted">Then tap the green button. Your other corners and side lengths stay put.</div></div></div>
+   ${n>=2?`<div class="card"><div class="between"><div><b>Corner number</b><div class="muted small">Marked them out of order? This swaps it with the next or previous corner.</div></div>
+     <div class="stepper"><button data-act="movec" data-d="-1" aria-label="Lower number" ${k===0?'disabled':''}>−</button><output>${k+1}</output><button data-act="movec" data-d="1" aria-label="Higher number" ${k===n-1?'disabled':''}>+</button></div></div></div>`:''}
+   ${n>=2?B(`Add a missed corner between ${k+1} and ${nx+1}`,'insc','sec','', 'insbtn')+`<div class="muted small">For a corner you skipped. Stand on it first.</div>`:''}
+   ${B(armed==='delc'+k?`Tap again to delete corner ${k+1}`:`Delete corner ${k+1}`,'delc','red')}`,
+  dock:[B('Done fixing','fixdone','sec'),B(`Redo corner ${k+1} here`,'redoc','',false,'primary')],
+  mount(){draw(a,undefined,k);note=null}};
+},
+result(){const q=Q(),a=AR(),c=check(a),sq=areaSq(a),t=totals(q);
+  const taken=a.kind==='sub'?(t.outl?'Taken out of the yard.':'Taken out of the yard once you measure the yard.'):(!OUTLINE.includes(a.type)&&t.outl?'Taken out of the lawn so it isn\'t counted twice.':'');
+  return {title:a.name,back:()=>go({s:'hub',q:q.id}),
+  html:`<div class="card center"><div class="muted">${esc(a.name)}</div><div class="huge" ${a.kind==='sub'?'style="color:var(--red)"':''}>${fmt(sq)} sq ft</div>${taken?`<div class="muted small">${taken}</div>`:''}</div>
+   ${a.mode==='gps'?'<canvas class="map"></canvas><div class="muted small" style="text-align:center">Tap a corner on the map to fix it.</div>':''}
+   <div class="check ${c.lv}"><span class="dot">${c.lv==='ok'?'✓':'!'}</span><div><b>${esc(c.t)}</b><span>${esc(c.m)}</span>${c.swap?B(c.fl,'swapfix','sec'):c.fix!=null?B(c.fl,'fix','sec'):''}${c.corner!=null?B(`Redo corner ${c.corner+1}`,'fixcorner','sec'):''}</div></div>
+   <details><summary>Change something</summary><div style="display:grid;gap:10px;margin-top:8px">
+     ${a.mode==='gps'&&a.pts.length>=3?B('Re-measure the sides','remeasure','sec'):''}
+     ${a.mode==='gps'&&a.pts.length>=4?B(a.square?'Corners are NOT square':'Corners ARE square','togsq','sec'):''}
+     ${a.mode==='gps'?B('Fix, add or delete a corner','fixc','sec')+B('Add corners at the end','more','sec'):B('Change the size','typesize','sec')}
+     ${B(armed==='del'+a.id?'Tap again to remove':'Remove this area','delarea','red')}</div></details>`,
+  dock:[B('Done','hubback')],mount(){draw(a)}};
+},
+typesize(){const q=Q(),a=AR(),lw=a.sizeMode!=='sqft';
+  const ok=()=>lw?num(a.l)>0&&num(a.w)>0:num(a.sqft)>0;
+  return {title:'Type the size',back:()=>go({s:'walk',q:q.id,a:a.id}),
+  html:`<div class="toggle"><button data-act="sizemode" data-m="lw" aria-pressed="${lw}">Length × width</button><button data-act="sizemode" data-m="sqft" aria-pressed="${!lw}">Square feet</button></div>
+  ${lw?`<div class="two"><label class="lbl">Length<input id="L" type="number" inputmode="decimal" value="${a.l||''}" style="font-size:24px"></label><label class="lbl">Width<input id="W" type="number" inputmode="decimal" value="${a.w||''}" style="font-size:24px"></label></div>
+   <div class="toggle"><button data-act="unit" data-u="steps" aria-pressed="${a.sideUnit==='steps'}">Steps</button><button data-act="unit" data-u="ft" aria-pressed="${a.sideUnit==='ft'}">Feet</button></div>
+   <div class="muted">For a rectangle. For other shapes, walk the corners instead.</div>`
+  :`<label class="lbl">Square feet<input id="F" type="number" inputmode="decimal" value="${a.sqft||''}" style="font-size:24px"></label><div class="muted">Only if you already know it from a real measurement.</div>`}`,
+  dock:[B('Save','savesize','',!ok(),'primary')],
+  mount(){const up=()=>{$('primary').disabled=!ok();save()};
+    ['L','W','F'].forEach(id=>{const i=$(id);if(i)i.addEventListener('input',()=>{a[{L:'l',W:'w',F:'sqft'}[id]]=num(i.value);up()})})}};
+},
+hub(){const q=Q(),t=totals(q);
+  const priceCard=!q.areas.length?`<div class="card center"><div class="big">Nothing measured yet</div><div class="muted">Tap the green button to measure the first area.</div></div>`
+   :t.miss.length?`<div class="card"><div class="big no">Can't price this yet</div><div>You haven't timed yourself on <b>${t.miss.map(m=>m.name.toLowerCase()).join('</b> or <b>')}</b>, so any price would be a guess.</div>${t.miss.map(m=>B(`Time myself on ${m.name.toLowerCase()} (10 min)`,'timeit','sec').replace('data-act','data-type="'+m.id+'" data-act')).join('')}</div>`
+   :`<div class="card center"><div class="muted">Your price</div><div class="price">$${t.price}</div><div class="muted">About ${t.half} hours of work · ${fmt(t.sq)} sq ft</div><div class="say" id="say">${esc(t.say)}</div>${B('Copy what to say','copy','sec')}</div>`;
+  return {title:esc(q.job)||'Quote',back:()=>go({s:'home'}),
+  html:`${priceCard}
+   ${q.areas.length?`<div class="list">${q.areas.map(a=>{const c=check(a);return `<button class="item ${a.kind==='sub'?'sub':''}" data-act="opena" data-id="${a.id}"><span class="ic">${a.kind==='sub'?IC.house:IC[{lawn:'lawn',bag:'bag',heavy:'rock',beds:'bed'}[a.type]]}</span><span class="tx"><b>${esc(a.name)}</b><span class="small ${c.lv==='ok'?'ok':'no'}">${c.lv==='ok'?'✓ ':'! '}${esc(c.t)}</span></span><span class="rt">${a.kind==='sub'?'−':''}${fmt(areaSq(a))}<small class="muted">sq ft</small></span><span class="chev"></span></button>`}).join('')}</div>`:''}
+   ${q.areas.length?`<div class="card"><div class="between"><div><b>Bags you'll use</b><div class="muted small">$${S.bagCost} each</div></div><div class="stepper"><button data-act="bag" data-d="-1" aria-label="One less bag">−</button><output>${q.bags||0}</output><button data-act="bag" data-d="1" aria-label="One more bag">+</button></div></div></div>
+   <details class="card"><summary>How this price was figured</summary><table><tbody>${t.rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</tbody></table></details>`:''}
+   ${B(armed==='delq'?'Tap again to delete this quote':'Delete this quote','delq','red')}`,
+  dock:[B(q.areas.length?'+ Measure another area':'+ Measure an area','addarea')]};
+},
+time(){const T=S.timer||(S.timer={type:S.view.type,l:0,w:0,unit:S.unit,start:0,end:0}),t=typ(T.type),run=T.start&&!T.end,done=T.start&&T.end;
+  const sq=toFt({sideUnit:T.unit},num(T.l))*toFt({sideUnit:T.unit},num(T.w));
+  const back=()=>{if(run)return;S.timer=null;go(S.view.from||{s:'home'})};
+  if(done){const hrs=(T.end-T.start)/3600000,spd=sq/hrs,min=(T.end-T.start)/60000;
+    return {title:`Time it: ${t.name}`,back,html:`<div class="card center"><div class="muted">Your speed</div><div class="price">${fmt(spd)}</div><div class="muted">sq ft per hour</div><div>${fmt(sq)} sq ft in ${min.toFixed(1)} minutes</div></div>${min<5?'<div class="msg bad">That was under 5 minutes. A longer test (about 10 minutes) gives a truer number.</div>':''}`,
+      dock:[B('Try again','tagain','sec'),B('Save my speed','tsave')]}}
+  if(run)return {title:`Time it: ${t.name}`,back:null,html:`<div class="card center"><div class="muted">Work normally on your ${fmt(sq)} sq ft patch</div><div class="clock" id="clock">0:00</div><div class="muted">Tap Stop the moment the patch is done.</div></div>`,
+      dock:[B('Cancel','tcancel','sec'),B('Stop, I\'m done','tstop')],mount(){tick()}};
+  return {title:`Time it: ${t.name}`,back,
+  html:`<div class="card"><ol class="howto"><li>Pick a patch that takes about 10 minutes to do.</li><li>Pace its length and width.</li><li>Tap Start and work at your normal speed.</li><li>Tap Stop when the patch is done.</li></ol></div>
+  <div class="two"><label class="lbl">Length<input id="L" type="number" inputmode="decimal" value="${T.l||''}" style="font-size:24px"></label><label class="lbl">Width<input id="W" type="number" inputmode="decimal" value="${T.w||''}" style="font-size:24px"></label></div>
+  <div class="toggle"><button data-act="tunit" data-u="steps" aria-pressed="${T.unit==='steps'}">Steps</button><button data-act="tunit" data-u="ft" aria-pressed="${T.unit==='ft'}">Feet</button></div>
+  <div class="muted" id="tsq">${sq?`Patch: ${fmt(sq)} sq ft`:''}</div>`,
+  dock:[B('Start the timer','tstart','',!sq,'primary')],
+  mount(){['L','W'].forEach(id=>$(id).addEventListener('input',e=>{T[id.toLowerCase()]=num(e.target.value);save();const s=toFt({sideUnit:T.unit},num(T.l))*toFt({sideUnit:T.unit},num(T.w));$('tsq').textContent=s?`Patch: ${fmt(s)} sq ft`:'';$('primary').disabled=!s}))}};
+},
+settings(){
+  return {title:'Settings',back:()=>go({s:'home'}),
+  html:`<div class="card"><div class="big">Your speeds</div><div class="muted">Square feet you do per hour. Every price comes from these, so they have to come from real timed work.</div>
+   ${S.types.map(t=>`<div class="spd"><div class="row"><div><b>${t.name}</b><div class="muted small">${esc(t.src)}</div></div><input type="number" inputmode="decimal" data-speed="${t.id}" value="${t.speed||''}" placeholder="0"></div>${B(t.speed?'Time it again':'Time it now (10 min)','timeit','sec').replace('data-act','data-type="'+t.id+'" data-act')}</div>`).join('')}</div>
+   <div class="card"><div class="big">Your step</div><label class="lbl">Inches you cover in 10 normal steps<input type="number" inputmode="decimal" data-set="step10" value="${S.step10}"></label><div class="muted" id="stepout">= ${S.step.toFixed(2)} ft per step</div></div>
+   <div class="card"><div class="big">Money</div><div class="two">
+     <label class="lbl">Hourly rate ($)<input type="number" inputmode="decimal" data-set="rate" value="${S.rate}"></label>
+     <label class="lbl">Extra for surprises (%)<input type="number" inputmode="decimal" data-set="buffer" value="${S.buffer}"></label>
+     <label class="lbl">Charge per bag ($)<input type="number" inputmode="decimal" data-set="bagCost" value="${S.bagCost}"></label>
+     <label class="lbl">Travel fee ($)<input type="number" inputmode="decimal" data-set="travel" value="${S.travel}"></label></div></div>
+   <div class="card"><label class="lbl">Seconds to hold still for each corner<input type="number" inputmode="decimal" data-set="gpsSecs" value="${S.gpsSecs}"></label><div class="muted">Longer = more accurate corners. 8 is a good middle.</div></div>`,
+  dock:[],mount(){
+    document.querySelectorAll('[data-set]').forEach(i=>i.addEventListener('input',()=>{const k=i.dataset.set;S[k]=num(i.value);if(k==='step10'){S.step=S.step10/10/12;$('stepout').textContent=`= ${S.step.toFixed(2)} ft per step`}if(k==='gpsSecs')S.gpsSecs=Math.max(3,S.gpsSecs);save()}));
+    document.querySelectorAll('[data-speed]').forEach(i=>i.addEventListener('input',()=>{const t=typ(i.dataset.speed);t.speed=num(i.value);t.src=t.speed?'Typed in by you':'Not timed yet';save()}))}};
+}};
+
+let tickIv=null,wake=null;
+function tick(){clearInterval(tickIv);const f=()=>{const el=$('clock');if(!el||!S.timer||!S.timer.start||S.timer.end){clearInterval(tickIv);return}
+  const s=Math.floor((Date.now()-S.timer.start)/1000);el.textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};f();tickIv=setInterval(f,1000)}
+
+// ---------- actions ----------
+function act(name,el){
+  const q=Q(),a=AR();
+  if(!['delarea','delq','delc'].includes(name))armed=null;
+  switch(name){
+  case 'newq':{const nq={id:uid(),job:'',created:Date.now(),areas:[],bags:0};S.quotes.unshift(nq);go({s:'name',q:nq.id});break}
+  case 'openq':go({s:'hub',q:el.dataset.id});break;
+  case 'settings':go({s:'settings'});break;
+  case 'namenext':go(q.areas.length?{s:'hub',q:q.id}:{s:'pick',q:q.id});break;
+  case 'pick':newArea(el.dataset.kind,el.dataset.type);break;
+  case 'drop':dropPoint();break;
+  case 'undo':{const n=a.pts.length;if(!n)return;const id=a.pts.pop().id;Object.keys(a.sides).forEach(s=>{if(s.split('-').includes(id))delete a.sides[s]});note=null;save();render();break}
+  case 'fixc':go({s:'corner',q:q.id,a:a.id,k:Math.max(0,a.pts.length-1),from:{...S.view}});break;
+  case 'pickc':go({...S.view,k:num(el.dataset.i)});break;
+  case 'redoc':dropPoint({replace:Math.min(S.view.k,a.pts.length-1)});break;
+  case 'insc':dropPoint({insert:Math.min(S.view.k,a.pts.length-1)+1},el);break;
+  case 'delc':{const k=Math.min(S.view.k,a.pts.length-1);if(armed!=='delc'+k){armed='delc'+k;render();return}armed=null;
+    const id=a.pts[k].id;a.pts.splice(k,1);Object.keys(a.sides).forEach(s=>{if(s.split('-').includes(id))delete a.sides[s]});
+    if(!a.pts.length){go({s:'walk',q:q.id,a:a.id});break}note=[`Corner ${k+1} deleted. The ones after it moved down a number.`,0];S.view.k=Math.max(0,k-1);save();render();break}
+  case 'movec':{const k=Math.min(S.view.k,a.pts.length-1),j=k+num(el.dataset.d);if(j<0||j>=a.pts.length)return;
+    [a.pts[k],a.pts[j]]=[a.pts[j],a.pts[k]];S.view.k=j;note=[`That corner is now number ${j+1}, and the old number ${j+1} is now ${k+1}.`,0];save();render();break}
+  case 'fixcorner':go({s:'corner',q:q.id,a:a.id,k:check(a).corner,from:{...S.view}});break;
+  case 'swapfix':{const X=check(a).swap;if(X){[a.pts[X[0]],a.pts[X[1]]]=[a.pts[X[1]],a.pts[X[0]]];save();render()}break}
+  case 'fixdone':go(S.view.from||{s:'result',q:q.id,a:a.id});break;
+  case 'walkdone':go({s:'side',q:q.id,a:a.id,k:0});break;
+  case 'unit':{const v=num(($('sv')||{}).value);a.sideUnit=el.dataset.u;S.unit=a.sideUnit;save();render();break}
+  case 'sidenext':{const n=edgesOf(a.pts.length).length,k=S.view.k;if(k<n-1)go({...S.view,k:k+1});else if(a.pts.length>=4)go({s:'square',q:q.id,a:a.id});else go({s:'result',q:q.id,a:a.id});break}
+  case 'sq':a.square=el.dataset.v==='1';go({s:'result',q:q.id,a:a.id});break;
+  case 'fix':{const c=check(a);if(a.mode==='size')go({s:'typesize',q:q.id,a:a.id});else go({s:'side',q:q.id,a:a.id,k:c.fix||0});break}
+  case 'remeasure':go({s:'side',q:q.id,a:a.id,k:0});break;
+  case 'togsq':a.square=!a.square;save();render();break;
+  case 'more':go({s:'walk',q:q.id,a:a.id});break;
+  case 'typesize':a.mode='size';go({s:'typesize',q:q.id,a:a.id});break;
+  case 'sizemode':a.sizeMode=el.dataset.m;save();render();break;
+  case 'savesize':go({s:'result',q:q.id,a:a.id});break;
+  case 'delarea':if(armed!=='del'+a.id){armed='del'+a.id;render();return}armed=null;q.areas=q.areas.filter(z=>z!==a);go({s:'hub',q:q.id});break;
+  case 'hubback':go({s:'hub',q:q.id});break;
+  case 'opena':go({s:'result',q:q.id,a:el.dataset.id});break;
+  case 'addarea':go({s:'pick',q:q.id});break;
+  case 'bag':q.bags=Math.max(0,(q.bags||0)+num(el.dataset.d));save();render();break;
+  case 'copy':{const t=totals(q).say;const done=()=>{el.textContent='Copied ✓';setTimeout(()=>{el.textContent='Copy what to say'},1500)};
+    (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(done).catch(()=>{const r=document.createRange();r.selectNodeContents($('say'));const s=getSelection();s.removeAllRanges();s.addRange(r)});break}
+  case 'delq':if(armed!=='delq'){armed='delq';render();return}armed=null;S.quotes=S.quotes.filter(z=>z!==q);go({s:'home'});break;
+  case 'timeit':S.timer={type:el.dataset.type,l:0,w:0,unit:S.unit,start:0,end:0};go({s:'time',type:el.dataset.type,from:{...S.view}});break;
+  case 'tunit':S.timer.unit=el.dataset.u;S.unit=el.dataset.u;save();render();break;
+  case 'tstart':S.timer.start=Date.now();S.timer.end=0;save();try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{})}catch(e){}render();break;
+  case 'tstop':S.timer.end=Date.now();save();try{wake&&wake.release()}catch(e){}render();break;
+  case 'tcancel':case 'tagain':S.timer.start=0;S.timer.end=0;save();render();break;
+  case 'tsave':{const T=S.timer,t=typ(T.type),u={sideUnit:T.unit},sq=toFt(u,T.l)*toFt(u,T.w),min=(T.end-T.start)/60000;
+    t.speed=Math.round(sq/(min/60));t.src=`Timed by you: ${fmt(sq)} sq ft in ${min.toFixed(1)} min (${new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'})})`;
+    const from=S.view.from||{s:'home'};S.timer=null;go(from);break}
+  }
+}
+
+function render(){
+  let v=S.view;
+  if((v.q&&!Q())||(v.a&&!AR())||(v.s==='time'&&!S.timer&&!v.type))v=S.view={s:'home'};
+  if(S.timer&&S.timer.start&&!S.timer.end&&v.s!=='time')v=S.view={s:'time',type:S.timer.type,from:v};
+  const sc=(SCREENS[v.s]||SCREENS.home)();
+  $('hdr').className='in'+(sc.back?'':' home');
+  $('hdr').innerHTML=`${sc.back?'<button class="back" id="back">‹ Back</button>':''}<h1>${sc.title}</h1>`;
+  $('main').innerHTML=sc.html;
+  $('dock').innerHTML=(sc.dock||[]).join('');
+  document.querySelector('.dock').hidden=!(sc.dock||[]).length;
+  if(sc.back)$('back').onclick=()=>{armed=null;if(!gps)sc.back()};
+  document.querySelectorAll('[data-act]').forEach(el=>el.addEventListener('click',()=>act(el.dataset.act,el)));
+  if(sc.mount)sc.mount();
+  const cv=document.querySelector('canvas.map');
+  if(cv&&['walk','result','corner'].includes(S.view.s))cv.addEventListener('click',e=>{if(gps)return;const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+    let bi=-1,bd=34;mapPts.forEach(([u,v],i)=>{const d=Math.hypot(u-x,v-y);if(d<bd){bd=d;bi=i}});
+    if(bi<0)return;armed=null;if(S.view.s==='corner')go({...S.view,k:bi});else go({s:'corner',q:S.view.q,a:S.view.a,k:bi,from:{...S.view}})});
+}
+addEventListener('resize',()=>{const v=S.view;if(['walk','side','result','corner'].includes(v.s))draw(AR(),v.s==='side'?v.k:undefined,v.s==='corner'?v.k:undefined)});
+render();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
