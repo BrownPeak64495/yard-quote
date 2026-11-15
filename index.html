@@ -318,12 +318,19 @@ function stopMap(){if(liveW!=null){try{navigator.geolocation.clearWatch(liveW)}c
 function mapBlock(a,o={}){const sat=(o.forceSat||S.mview!=='draw')&&satOK(),n=a.pts.length;
   return `${o.forceSat?'':`<div class="toggle"><button data-act="mview" data-v="sat" aria-pressed="${sat}">Satellite</button><button data-act="mview" data-v="draw" aria-pressed="${!sat}">Drawing</button></div>`}
   <div class="map">${sat?'<div id="lmap"></div>':'<canvas class="map"></canvas>'}<span class="cnt">${n} corner${n===1?'':'s'} marked</span></div>
-  ${!satOK()?'<div class="muted small">The satellite map needs signal, so this is the drawing.</div>':''}`}
+  ${!satOK()?'<div class="muted small">The satellite map needs signal, so this is the drawing.</div>':''}
+  ${sat?`<div class="msg bad small" id="maperr" hidden></div>${S.esriKey?'':'<div class="muted small">Blurry up close? You can get sharper photos for free: Settings → Sharper satellite photos.</div>'}`:''}`}
 function mountMap(a,o={}){if($('lmap'))buildMap(a,o);else draw(a,o.hi,o.hp)}
 function goCorner(i){if(gps)return;armed=null;if(S.view.s==='corner')go({...S.view,k:i});else go({s:'corner',q:S.view.q,a:S.view.a,k:i,from:{...S.view}})}
 function buildMap(a,o){
   const m=L.map('lmap',{maxZoom:21,zoomSnap:.5,tap:true});lmap=m;
-  L.tileLayer(TILES,{maxZoom:21,maxNativeZoom:20,attribution:'Aerial photo: USDA NAIP via USGS The National Map'}).addTo(m);
+  // USGS only has real photo detail down to zoom 16, so closer than that it stretches the zoom-16 photo instead of waiting on empty tiles.
+  // With the person's own free Esri key, use Esri World Imagery, which is much sharper (real detail to about zoom 19).
+  const key=(S.esriKey||'').trim();
+  const tl=key?L.tileLayer(`https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=${encodeURIComponent(key)}`,{maxZoom:21,maxNativeZoom:19,keepBuffer:4,attribution:'Powered by Esri | Esri, Maxar, Earthstar Geographics'})
+    :L.tileLayer(TILES,{maxZoom:21,maxNativeZoom:16,keepBuffer:4,attribution:'Aerial photo: USDA NAIP via USGS The National Map'});
+  let errs=0;tl.on('tileerror',()=>{if(++errs===3){const e=$('maperr');if(e){e.hidden=false;e.textContent=key?'The Esri key isn\'t working (expired, or the website setting is wrong). Check Settings, or clear the key to use the free government photos.':'Map photos aren\'t loading. Check your signal.'}}});
+  tl.addTo(m);
   Q().areas.forEach(z=>{if(z===a||z.mode!=='gps'||z.pts.length<3)return; // other areas, faint, for reference
     L.polygon(z.pts.map(p=>[p.lat,p.lon]),{color:z.kind==='sub'?'#ff8a6a':'#ffffff',weight:2,dashArray:'6 6',fillOpacity:.05,interactive:false}).addTo(m)});
   const ll=a.pts.map(p=>[p.lat,p.lon]),col=a.kind==='sub'?'#ff6b4a':'#7dff9b';
@@ -502,8 +509,14 @@ settings(){
      <label class="lbl">Extra for surprises (%)<input type="number" inputmode="decimal" data-set="buffer" value="${S.buffer}"></label>
      <label class="lbl">Charge per bag ($)<input type="number" inputmode="decimal" data-set="bagCost" value="${S.bagCost}"></label>
      <label class="lbl">Travel fee ($)<input type="number" inputmode="decimal" data-set="travel" value="${S.travel}"></label></div></div>
+   <div class="card"><div class="big">Sharper satellite photos (optional)</div>
+     <div class="muted">The free government photos get blurry up close. Esri's photos are much sharper, and free for up to 2 million map squares a month, but you need your own key.</div>
+     <ol class="howto"><li>Make a free account at <b>location.arcgis.com</b>.</li><li>Create an <b>API key</b> with <b>Basemaps</b> turned on. For allowed websites, put <b>https://brownpeak64495.github.io</b></li><li>Paste the key here. It stays only on this phone.</li></ol>
+     <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" data-str="esriKey" placeholder="Paste your Esri key" value="${esc(S.esriKey||'')}">
+     <div class="muted small">Leave it empty to use the free government photos.</div></div>
    <div class="card"><label class="lbl">Seconds to hold still for each corner<input type="number" inputmode="decimal" data-set="gpsSecs" value="${S.gpsSecs}"></label><div class="muted">Longer = more accurate corners. 8 is a good middle.</div></div>`,
   dock:[],mount(){
+    document.querySelectorAll('[data-str]').forEach(i=>i.addEventListener('input',()=>{S[i.dataset.str]=i.value.trim();save()}));
     document.querySelectorAll('[data-set]').forEach(i=>i.addEventListener('input',()=>{const k=i.dataset.set;S[k]=num(i.value);if(k==='step10'){S.step=S.step10/10/12;$('stepout').textContent=`= ${S.step.toFixed(2)} ft per step`}if(k==='gpsSecs')S.gpsSecs=Math.max(3,S.gpsSecs);save()}));
     document.querySelectorAll('[data-speed]').forEach(i=>i.addEventListener('input',()=>{const t=typ(i.dataset.speed);t.speed=num(i.value);t.src=t.speed?'Typed in by you':'Not timed yet';save()}))}};
 }};
